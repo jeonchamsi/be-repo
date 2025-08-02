@@ -1,7 +1,10 @@
 package com.hackathon.jcs.modules.chat.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hackathon.jcs.global.config.CustomWindowMemoryStore;
+import com.hackathon.jcs.modules.chat.dto.AiRequest;
+import com.hackathon.jcs.modules.chat.dto.NpcChatBetweenRequest;
 import com.hackathon.jcs.modules.chat.dto.NpcChatRequest;
 import com.hackathon.jcs.modules.chat.dto.NpcChatResponse;
 import com.hackathon.jcs.modules.chat.exception.ChatException;
@@ -31,9 +34,46 @@ public class ChatService {
     public NpcChatResponse sendMessage(Long npcId, @Valid NpcChatRequest chatRequest) {
         Npc npc = npcRepository.findById(npcId)
                 .orElseThrow(() -> new ChatException(ChatExceptionType.NOT_EXISTING_NPC_ID));
+        AiRequest request = AiRequest.builder()
+                .mood(npc.getMood())
+                .valence(npc.getValence())
+                .valenceStrength(npc.getValence_strength())
+                .say(chatRequest.message())
+                .build();
+        String message = null;
+        try {
+            message = objectMapper.writeValueAsString(request);
+        } catch (JsonProcessingException e) {
+            throw new ChatException(ChatExceptionType.MESSAGE_CONVERSION_ERROR);
+        }
+
         String npcResponse = chatClient.prompt()
                 .advisors(MessageChatMemoryAdvisor.builder(windowMemoryStore.getMemory("npc" + npcId)).build())
-                .system(SYSTEM_PROMPT.getPromptMessage() + npc.getInitPrompt())
+                .system(SYSTEM_PROMPT.getPromptMessage())
+                .user(message)
+                .call()
+                .content();
+
+        log.info(npcResponse);
+        NpcChatResponse response = null;
+        try {
+            response = objectMapper.readValue(npcResponse, NpcChatResponse.class);
+        } catch (JsonProcessingException e) {
+            throw new ChatException(ChatExceptionType.MESSAGE_CONVERSION_ERROR);
+        }
+        npc.updateFromAiResponse(response);
+        return response;
+    }
+
+    public NpcChatResponse sendMessageBetween(@Valid NpcChatBetweenRequest chatRequest) {
+        Npc fromNpc = npcRepository.findById(chatRequest.from())
+                .orElseThrow(() -> new ChatException(ChatExceptionType.NOT_EXISTING_NPC_ID));
+        Npc toNpc = npcRepository.findById(chatRequest.to())
+                .orElseThrow(() -> new ChatException(ChatExceptionType.NOT_EXISTING_NPC_ID));
+
+        String npcResponse = chatClient.prompt()
+                .advisors(MessageChatMemoryAdvisor.builder(windowMemoryStore.getMemory("npc" + toNpc.getId())).build())
+                .system(SYSTEM_PROMPT.getPromptMessage())
                 .user(chatRequest.message())
                 .call()
                 .content();

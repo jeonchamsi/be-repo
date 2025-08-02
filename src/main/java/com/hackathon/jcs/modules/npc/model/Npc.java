@@ -1,5 +1,6 @@
 package com.hackathon.jcs.modules.npc.model;
 
+import com.hackathon.jcs.modules.chat.dto.NpcChatResponse;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -16,17 +17,21 @@ public class Npc {
     private Long id;
 
     private String name;
-    private String personality;
+    private String valence;
+    private int valence_strength;
     private String mood;
 
-    @Column(length = 1000)
-    private String initPrompt;
-
     @Builder
-    public Npc(String name, String personality, String mood, String initPrompt) {
+    public Npc(String name, String valence, int valence_strength, String mood) {
         this.name = name;
-        this.personality = personality;
+        this.valence = valence;
+        this.valence_strength = valence_strength;
         this.mood = mood;
-        this.initPrompt = initPrompt;
+    }
+
+    public void updateFromAiResponse(NpcChatResponse response) {
+        this.mood = response.mood();
+        this.valence = response.valence();
+        this.valence_strength = response.valence_strength();
     }
 }
