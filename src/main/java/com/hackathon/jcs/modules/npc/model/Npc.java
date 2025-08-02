@@ -1,9 +1,6 @@
 package com.hackathon.jcs.modules.npc.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +18,8 @@ public class Npc {
     private String name;
     private String personality;
     private String mood;
+
+    @Column(length = 1000)
     private String initPrompt;
 
     @Builder

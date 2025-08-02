@@ -4,6 +4,7 @@ import com.hackathon.jcs.global.base.BaseExceptionType;
 import org.springframework.http.HttpStatus;
 
 public enum ChatExceptionType implements BaseExceptionType {
+    NOT_EXISTING_NPC_ID(HttpStatus.BAD_REQUEST, "존재하지 않는 npc id 입니다")
     ;
 
     private final HttpStatus httpStatus;
